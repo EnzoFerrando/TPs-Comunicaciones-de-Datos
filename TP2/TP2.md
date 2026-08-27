@@ -11,7 +11,7 @@
 
 # Punto 1
 
-![image.png](image.png)
+![image.png](images/image.png)
 
 ## 1.a
 
@@ -53,7 +53,7 @@ El fenómeno representado es el efecto Doppler. Ocurre cuando hay un movimiento 
 
 # Punto 2
 
-![image.png](image%201.png)
+![image.png](images/image%201.png)
 
 ## 2.a
 
@@ -188,7 +188,7 @@ Son más resilientes las modulaciones simples (BPSK) y las transmisiones con may
 
 El payload obtenido por nuestro grupo fue: w
 
-![image.png](image%202.png)
+![image.png](images/image%202.png)
 
 ## 5.b
 
