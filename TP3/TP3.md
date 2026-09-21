@@ -39,7 +39,7 @@ Una trama Ethernet es la unidad de datos que se transmite en una red Ethernet a 
 
 **¿Qué información permite determinar qué protocolo de capa superior está transportando una trama Ethernet?**
 
-Esto se determina mediante el campo EtherType del encabezado Ethernet, un valor de 2 bytes que funciona como etiqueta indicando qué protocolo va encapsulado en el contenido de la trama. Por ejemplo, el valor 0x0800 indica que adentro hay un paquete IPv4, 0x86DD indica IPv6, y 0x0806 indica ARP. Cuando el dispositivo receptor lee la trama, revisa ese campo para saber cómo interpretar correctamente lo que sigue.
+La información que permite determinarlo es el campo EtherType del encabezado Ethernet, un valor de 2 bytes que identifica el protocolo encapsulado en la trama. Por ejemplo, el valor 0x0800 indica que adentro hay un paquete IPv4, 0x86DD indica IPv6, y 0x0806 indica ARP. Cuando el dispositivo receptor lee la trama, revisa ese campo para saber cómo interpretar correctamente lo que sigue.
 
 ---
 
@@ -57,7 +57,7 @@ Esto se determina mediante el campo EtherType del encabezado Ethernet, un valor 
 
 **Seleccionar una trama Ethernet e identificar las direcciones MAC de origen y destino. ¿A qué dispositivos creen que corresponden?**
 
-Al seleccionar la trama número 168 de la captura, dentro de la sección Ethernet II se identifican dos direcciones MAC: la dirección de origen es `90:f9:b7:1d:8b:3e` y la dirección de destino es `50:2e:91:4c:da:7e`. Como la trama es entrante -su IP de origen es un servidor remoto y su IP de destino es la computadora local-, la MAC de origen corresponde al router o punto de acceso de la red local y la MAC de destino a la interfaz Wi-Fi de la computadora. No aparece la MAC del servidor remoto: las direcciones MAC solo tienen alcance local y el router reencapsula el paquete al enviarlo por el último enlace.
+Al seleccionar la trama número 168 de la captura, dentro de la sección Ethernet II se identifican dos direcciones MAC: la dirección de origen es `90:f9:b7:1d:8b:3e` y la dirección de destino es `50:2e:91:4c:da:7e`. Como la trama es entrante, su IP de origen es un servidor remoto y su IP de destino es la computadora local, la MAC de origen corresponde al router o punto de acceso de la red local y la MAC de destino a la interfaz Wi-Fi de la computadora. No aparece la MAC del servidor remoto: las direcciones MAC solo tienen alcance local y el router reencapsula el paquete al enviarlo por el último enlace.
 
 ---
 
@@ -65,7 +65,7 @@ Al seleccionar la trama número 168 de la captura, dentro de la sección Etherne
 
 **Dentro de la misma trama, identificar el paquete IP. ¿Cuáles son las direcciones IP de origen y destino? (no importa si son versión 4 o versión 6)**
 
-Dentro de esa misma trama, en la sección correspondiente al paquete IP (Internet Protocol Version 4), se observa que la dirección IP de origen es 140.82.114.25 y la dirección IP de destino es 192.168.100.20. La IP de origen pertenece a un servidor remoto en internet (pudimos identificar que pertenece a GitHub), mientras que la IP de destino es la dirección privada asignada a la computadora dentro de la red local. En este caso, el paquete corresponde a una respuesta que envía el servidor hacia el equipo, por lo que el sentido de la comunicación es del servidor hacia la computadora local.
+Dentro de esa misma trama, en la sección correspondiente al paquete IP (IPv4), se observa que la dirección IP de origen es 140.82.114.25 y la dirección IP de destino es 192.168.100.20. La IP de origen pertenece a un servidor remoto en internet (pudimos identificar que pertenece a GitHub), mientras que la IP de destino es la dirección privada asignada a la computadora dentro de la red local. En este caso, el paquete corresponde a una respuesta que envía el servidor hacia el equipo, por lo que el sentido de la comunicación es del servidor hacia la computadora local.
 
 ---
 
@@ -81,7 +81,7 @@ Al comparar ambos tipos de direcciones concluimos que no representan lo mismo. L
 
 **Observar el campo EtherType. ¿Qué protocolo está encapsulado dentro de la trama analizada?**
 
-El campo EtherType de la trama analizada indica el valor IPv4 (0x0800), lo cual señala que el protocolo encapsulado dentro de dicha trama Ethernet es IPv4. Esto es coherente con el resto de la información visible en la captura, donde efectivamente se observa un paquete de Internet Protocol Version 4 seguido de un segmento TCP dentro del contenido de la trama.
+El campo EtherType de la trama analizada indica el valor IPv4 (0x0800), lo cual señala que el protocolo encapsulado dentro de dicha trama Ethernet es IPv4. Esto es coherente con el resto de la información visible en la captura, donde efectivamente se observa un paquete de IPv4 seguido de un segmento TCP dentro del contenido de la trama.
 
 ---
 ## Punto 3
@@ -90,7 +90,7 @@ El campo EtherType de la trama analizada indica el valor IPv4 (0x0800), lo cual 
 
 **¿Qué problema(s) resuelve TCP que no resuelve directamente Ethernet ni IP?**
 
-TCP proporciona una comunicación confiable y orientada a conexión entre aplicaciones. A diferencia de Ethernet e IP, utiliza números de secuencia, confirmaciones y retransmisiones para garantizar que los datos lleguen completos y en orden. También implementa control de flujo y control de congestión.
+Los problemas que resuelve TCP son los de la comunicación confiable entre aplicaciones, algo que Ethernet e IP no garantizan por sí solos. Mediante números de secuencia, confirmaciones (ACK) y retransmisiones, asegura que los datos lleguen completos y en el orden correcto. Además, aplica control de flujo, para no saturar al receptor, y control de congestión, para no saturar la red.
 
 ---
 
@@ -128,11 +128,11 @@ A diferencia de TCP, UDP posee una cabecera más pequeña y sencilla. UDP solame
 
 #### Three-way handshake
 
-El **Three-way handshake** es el procedimiento utilizado por TCP para establecer una conexión entre un cliente y un servidor. Se realiza mediante tres intercambios:
+El Three-way handshake es el procedimiento utilizado por TCP para establecer una conexión entre un cliente y un servidor. Se realiza mediante tres intercambios:
 
-1. El cliente envía al servidor un segmento con la bandera **SYN** activada. Con este mensaje solicita iniciar una conexión y comunica su número de secuencia inicial.
-2. El servidor responde con las banderas **SYN y ACK** activadas. De esta manera, acepta la solicitud, confirma el número de secuencia del cliente y comunica su propio número de secuencia inicial.
-3. Finalmente, el cliente envía un segmento con la bandera **ACK**, confirmando la respuesta del servidor.
+1. El cliente envía al servidor un segmento con la bandera SYN activada. Con este mensaje solicita iniciar una conexión y comunica su número de secuencia inicial.
+2. El servidor responde con las banderas SYN y ACK activadas. De esta manera, acepta la solicitud, confirma el número de secuencia del cliente y comunica su propio número de secuencia inicial.
+3. Finalmente, el cliente envía un segmento con la bandera ACK, confirmando la respuesta del servidor.
 
 El intercambio puede representarse de la siguiente manera:
 
@@ -146,12 +146,12 @@ Una vez completados estos tres pasos, la conexión TCP queda establecida y ambos
 
 #### Four-way handshake
 
-El **Four-way handshake** es el procedimiento que normalmente utiliza TCP para finalizar una conexión de forma ordenada. Se necesitan cuatro intercambios porque cada sentido de la comunicación se cierra de manera independiente:
+El Four-way handshake es el procedimiento que normalmente utiliza TCP para finalizar una conexión de forma ordenada. Se necesitan cuatro intercambios porque cada sentido de la comunicación se cierra de manera independiente:
 
-1. Uno de los dispositivos envía un segmento con la bandera **FIN**, indicando que ya no tiene más datos para enviar.
-2. El otro dispositivo responde con un **ACK**, confirmando que recibió la solicitud de cierre.
-3. Cuando el segundo dispositivo también termina de enviar sus datos, envía su propio segmento **FIN**.
-4. El primer dispositivo responde con un último **ACK**, confirmando el cierre definitivo.
+1. Uno de los dispositivos envía un segmento con la bandera FIN, indicando que ya no tiene más datos para enviar.
+2. El otro dispositivo responde con un ACK, confirmando que recibió la solicitud de cierre.
+3. Cuando el segundo dispositivo también termina de enviar sus datos, envía su propio segmento FIN.
+4. El primer dispositivo responde con un último ACK, confirmando el cierre definitivo.
 
 El intercambio puede representarse así:
 
@@ -233,7 +233,7 @@ Dirección IP: 34.136.251.235
 Puerto TCP:   5555
 ```
 
-Se configuró Packet Sender en modo **Persistent TCP** y se capturó la comunicación sobre la interfaz inalámbrica `wlp4s0`. En Wireshark se aplicó el filtro:
+Se configuró Packet Sender en modo Persistent TCP y se capturó la comunicación sobre la interfaz inalámbrica `wlp4s0`. En Wireshark se aplicó el filtro:
 
 ```text
 ip.addr == 34.136.251.235 && tcp.port == 5555
@@ -255,7 +255,7 @@ En la captura de Packet Sender se observa la conexión con `34.136.251.235:5555`
 
 *Figura 6. Sesión TCP persistente con el servidor remoto y respuestas obtenidas para los comandos enviados.*
 
-Mediante la opción **Follow TCP Stream** de Wireshark se reconstruyó toda la conversación. Los mensajes en rojo corresponden a los comandos enviados por el cliente y los mensajes en azul a las respuestas del servidor. Esto permite comprobar que el contenido viajó sin cifrar y pudo visualizarse directamente en formato ASCII.
+Mediante la opción Follow TCP Stream de Wireshark se reconstruyó toda la conversación. Los mensajes en rojo corresponden a los comandos enviados por el cliente y los mensajes en azul a las respuestas del servidor. Esto permite comprobar que el contenido viajó sin cifrar y pudo visualizarse directamente en formato ASCII.
 
 ![](images/TP3_20260921095252541.png)
 
@@ -269,4 +269,4 @@ Finalmente se cerró la conexión persistente. Wireshark registró un segmento `
 
 ### Conclusión
 
-La prueba permitió establecer una conexión TCP con un servicio alojado en Internet y observar su ciclo completo: apertura, intercambio de datos y cierre. También se comprobó que TCP permite mantener una conexión persistente para enviar varios comandos dentro de una misma sesión. Al utilizar **Follow TCP Stream** fue posible reconstruir todos los mensajes enviados y recibidos, lo que vuelve a demostrar que TCP por sí solo no cifra la información.
+La prueba permitió establecer una conexión TCP con un servicio alojado en Internet y observar su ciclo completo: apertura, intercambio de datos y cierre. También se comprobó que TCP permite mantener una conexión persistente para enviar varios comandos dentro de una misma sesión. Al utilizar Follow TCP Stream fue posible reconstruir todos los mensajes enviados y recibidos, lo que vuelve a demostrar que TCP por sí solo no cifra la información.
