@@ -8,8 +8,8 @@
 - Ezequiel Moreyra, 46226249, I.COMP
 
 --- 
-## Ejercicio 1: Investigación teórica Alcance de Redes y Virtualización
-#### A) 
+## Ejercicio 1: 
+#### 1.a) 
 Según su alcance geográfico, las redes se clasifican en:
 * BAN (Body Area Network): es la red de dispositivos que una persona lleva puestos, como sensores médicos o relojes inteligentes. Tiene un alcance de 1 o 2 metros y es de muy bajo consumo.
 * PAN (Personal Area Network): conecta los dispositivos de una misma persona dentro de unos 10 metros, por ejemplo el celular con los auriculares. Usa tecnologías como Bluetooth o USB.
@@ -23,7 +23,9 @@ De menor a mayor alcance: BAN, PAN, LAN, CAN, MAN, WAN y GAN.
 
 Aclaracion: la figura mencionada en la consigna no se encuentra incluida en el enunciado del trabajo práctico, por lo que se presento la clasificación ordenada de menor a mayor alcance.
 
-#### B)
+---
+
+#### 1.b)
  Una VLAN (Virtual LAN) es una red lógica que agrupa puertos de uno o más switches en un mismo dominio de broadcast, sin importar dónde estén conectados físicamente los equipos. Un mismo switch se puede dividir en varias redes independientes. Los equipos de VLAN distintas no se comunican entre sí salvo que haya un router o un switch de capa 3. Las VLAN aportan seguridad, reducen el tráfico de broadcast y permiten reorganizar la red sin recablear.
 
 Según cómo se asigna cada equipo a una VLAN, se clasifican en:
@@ -39,7 +41,9 @@ Según el tráfico que transportan, se distinguen:
 * VLAN de administración: se usa para acceder a la gestión del switch.
 * VLAN de voz: está dedicada a la telefonía IP, con prioridad sobre el resto del tráfico.
 
-#### C) 
+---
+
+#### 1.c) 
 IEEE 802.1Q es el estándar que define las VLAN en redes Ethernet. Establece cómo identificar a qué VLAN pertenece cada trama cuando varias VLAN comparten un mismo enlace.
 Para eso, agrega a la trama Ethernet una etiqueta de 4 bytes, ubicada entre la MAC de origen y el campo EtherType. Esa etiqueta tiene estos campos:
 
@@ -50,18 +54,22 @@ Para eso, agrega a la trama Ethernet una etiqueta de 4 bytes, ubicada entre la M
 
 Su relación con las VLAN es que permite extenderlas entre varios switches. Para eso distingue dos tipos de puertos. Los puertos de acceso pertenecen a una sola VLAN y envían las tramas sin etiqueta. Los puertos troncales transportan varias VLAN por un mismo enlace, y cada trama lleva su etiqueta.
 
-#### D) 
+---
+
+#### 1.d) 
 El tagging es el proceso de agregar la etiqueta 802.1Q, con el número de VLAN, a una trama que sale por un puerto troncal. El switch que la recibe lee la etiqueta, sabe a qué VLAN pertenece la trama y la quita antes de entregarla por un puerto de acceso.
 
 Por ejemplo, en la topología del punto 2, si el enlace entre ambos switches se configura como troncal, una trama de PC-A sale del sw1 hacia el sw2 con la etiqueta de la VLAN 10. El sw2 le quita la etiqueta y se la entrega a PC-B. Así, tramas de distintas VLAN pueden compartir el mismo cable sin mezclarse. La única excepción es la VLAN nativa, cuyas tramas viajan sin etiqueta.
 
-## Ejercicio 2: Configuración de VLANs en Packet Tracer
+---
+
+## Ejercicio 2:
 
 ### Topología
 
 ![Topología Ejercicio 2](images/TopologiaEj2.png)
 
-#### A) B) C) D)
+#### 2.a) b) c) d)
 Desde la terminal de cada PC, conectada al switch por cable de consola, se configuró el nombre del switch, las contraseñas de modo privilegiado, consola y vty, el cifrado de contraseñas y la IP de la VLAN 1. Configuración aplicada en sw1 (en sw2 es igual, con hostname sw2 e IP 192.168.1.12):
 
 ```text
@@ -120,8 +128,9 @@ line vty 5 15
  password 7 0822455D0A16
  login
 ```
+---
 
-#### E)
+#### 2.e)
 Se desactivaron los puertos no utilizados (en sw2 el rango es `fa0/2-17, fa0/19-24, gi0/1-2`):
 
 ```text
@@ -163,7 +172,9 @@ GigabitEthernet0/2     unassigned      YES manual administratively down down
 Vlan1                  192.168.1.11    YES manual up                    up
 ```
 
-#### F)
+---
+
+#### 2.f)
 Se guardó la configuración en la NVRAM, para que se mantenga ante un reinicio:
 
 ```text
@@ -171,8 +182,9 @@ sw1#write memory
 Building configuration...
 [OK]
 ```
+---
 
-#### G)
+#### 2.g)
 Ping de PC-A a PC-B:
 
 ```text
@@ -193,7 +205,9 @@ Approximate round trip times in milli-seconds:
 
 El ping es exitoso porque, por defecto, todos los puertos de ambos switches pertenecen a la VLAN 1, por lo que PC-A y PC-B están en el mismo dominio de broadcast y en la misma subred.
 
-#### H)
+---
+
+#### 2.h)
 Se crearon las VLANs en ambos switches:
 
 ```text
@@ -206,7 +220,9 @@ sw1(config-vlan)#name Management
 sw1(config-vlan)#end
 ```
 
-#### I)
+---
+
+#### 2.i)
 
 ```text
 sw1#show vlan brief
@@ -231,7 +247,9 @@ VLAN Name                             Status    Ports
 
 La VLAN utilizada por defecto es la VLAN 1 ("default"), a la que pertenecen inicialmente todos los puertos del switch. Las VLAN 1002 a 1005 también vienen creadas por defecto y están reservadas para tecnologías antiguas (FDDI y Token Ring).
 
-#### J) K)
+---
+
+#### 2.j) k)
 Se asignó PC-A (puerto Fa0/6) a la VLAN Laboratorio y se movió la IP de administración de la VLAN 1 a la VLAN 99:
 
 ```text
@@ -246,7 +264,9 @@ sw1(config-if)#end
 %LINK-5-CHANGED: Interface Vlan99, changed state to up
 ```
 
-#### L)
+---
+
+#### 2.l)
 
 ```text
 sw1#show vlan brief
@@ -304,7 +324,9 @@ Vlan99                 192.168.1.11    YES manual up                    down
 
 Con `show vlan brief` se verifica que el puerto Fa0/6 (PC-A) quedó asignado a la VLAN 10, mientras que el resto de los puertos, incluido Fa0/1 (enlace hacia sw2), permanece en la VLAN 1. Con `show ip interface brief` se observa que la IP de administración pasó a la interfaz Vlan99, que figura como up/down: está habilitada, pero su protocolo está caído porque ningún puerto activo pertenece a la VLAN 99. Por lo tanto, el switch no puede ser administrado por red hasta que la VLAN 99 tenga un puerto activo.
 
-#### M)
+---
+
+#### 2.m)
 Se repitió la configuración en sw2, asignando PC-B (puerto Fa0/18) a la VLAN 10 y la IP 192.168.1.12 a la VLAN 99:
 
 ```text
@@ -323,7 +345,9 @@ Building configuration...
 [OK]
 ```
 
-#### N)
+---
+
+#### 2.n)
 Ping de PC-A a PC-B:
 
 ```text
@@ -353,10 +377,14 @@ Success rate is 0 percent (0/5)
 
 Ninguno de los dos pings es exitoso. PC-A y PC-B pertenecen a la misma VLAN (10) y a la misma subred, pero están conectadas a switches distintos, y el único enlace entre ellos (Fa0/1) es un puerto de acceso de la VLAN 1. Como un switch solo reenvía tramas entre puertos de la misma VLAN, el tráfico de la VLAN 10 no puede pasar de un switch al otro. Lo mismo ocurre con el ping entre sw1 y sw2: sus direcciones IP ahora están en la VLAN 99, que no tiene ningún puerto activo, por lo que no hay camino para ese tráfico. Para solucionarlo, el enlace entre ambos switches debe configurarse como troncal 802.1Q, de modo que transporte el tráfico de varias VLAN usando etiquetas (tagging).
 
-## Ejercicio3: LAN en un avión
+---
+
+## Ejercicio3:
 
 i) Clase Turista: acceso solo a un sistema de entretenimiento (server local)
+
 ii) Clase Business: acceso a sistema de entretenimiento e internet.
+
 iii) Administración: acceso total.
 
 ### Diagrama Logico:
@@ -456,7 +484,7 @@ Ping statistics for 8.8.8.8:
     Packets: Sent = 4, Received = 0, Lost = 4 (100% loss),
 ```
 
-PC Business accediendo al HTTPS del servidor:
+PC Business accediendo al HTTP del servidor:
 
 ![PC Business HTTPS](images/PCBusinessHTTPS.png)
 
@@ -549,6 +577,7 @@ Approximate round trip times in milli-seconds:
 
 ### Conclusiones: 
 
-La práctica permitió comprobar cómo separar el tráfico de forma simple y segura usando VLANs y un router. Con el etiquetado 802.1Q se dividieron las clases del avión en un mismo switch, mientras que las subinterfaces del router se encargaron del DHCP y del ruteo entre redes.
+En el ejercicio 2 se pudo ver que una VLAN define un dominio de broadcast propio: aunque PC-A y PC-B compartieran subred y estuvieran en la misma VLAN, al no existir un enlace troncal entre sw1 y sw2 el tráfico quedó aislado y los pings fallaron. Esto deja en claro que extender una VLAN entre switches requiere configurar el enlace como troncal 802.1Q, para que las tramas viajen etiquetadas y cada switch sepa a qué VLAN pertenecen.
+Luego, en el ejercicio 3, se pudo separar el tráfico de forma simple y segura usando VLANs y un router. Con el etiquetado 802.1Q se dividieron las clases del avión en un mismo switch, mientras que las subinterfaces del router se encargaron del DHCP y del ruteo entre redes.
 Por último, combinando ACLs y NAT se logró el control de acceso que pedía la consigna: Turista solo llega al servidor local sin poder salir a la red externa, mientras que Business y Admin comparten la salida a Internet traduciendo sus IPs privadas con una sola IP pública.
 
