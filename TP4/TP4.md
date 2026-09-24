@@ -21,6 +21,8 @@ Según su alcance geográfico, las redes se clasifican en:
 
 De menor a mayor alcance: BAN, PAN, LAN, CAN, MAN, WAN y GAN.
 
+Aclaracion: la figura mencionada en la consigna no se encuentra incluida en el enunciado del trabajo práctico, por lo que se presento la clasificación ordenada de menor a mayor alcance.
+
 #### B)
  Una VLAN (Virtual LAN) es una red lógica que agrupa puertos de uno o más switches en un mismo dominio de broadcast, sin importar dónde estén conectados físicamente los equipos. Un mismo switch se puede dividir en varias redes independientes. Los equipos de VLAN distintas no se comunican entre sí salvo que haya un router o un switch de capa 3. Las VLAN aportan seguridad, reducen el tráfico de broadcast y permiten reorganizar la red sin recablear.
 
@@ -51,7 +53,306 @@ Su relación con las VLAN es que permite extenderlas entre varios switches. Para
 #### D) 
 El tagging es el proceso de agregar la etiqueta 802.1Q, con el número de VLAN, a una trama que sale por un puerto troncal. El switch que la recibe lee la etiqueta, sabe a qué VLAN pertenece la trama y la quita antes de entregarla por un puerto de acceso.
 
-Por ejemplo, en la topología del punto 2, una trama de PC-A sale del sw1 hacia el sw2 con la etiqueta de la VLAN 10. El sw2 le quita la etiqueta y se la entrega a PC-B. Así, tramas de distintas VLAN pueden compartir el mismo cable sin mezclarse. La única excepción es la VLAN nativa, cuyas tramas viajan sin etiqueta.
+Por ejemplo, en la topología del punto 2, si el enlace entre ambos switches se configura como troncal, una trama de PC-A sale del sw1 hacia el sw2 con la etiqueta de la VLAN 10. El sw2 le quita la etiqueta y se la entrega a PC-B. Así, tramas de distintas VLAN pueden compartir el mismo cable sin mezclarse. La única excepción es la VLAN nativa, cuyas tramas viajan sin etiqueta.
+
+## Ejercicio 2: Configuración de VLANs en Packet Tracer
+
+### Topología
+
+![Topología Ejercicio 2](images/TopologiaEj2.png)
+
+#### A) B) C) D)
+Desde la terminal de cada PC, conectada al switch por cable de consola, se configuró el nombre del switch, las contraseñas de modo privilegiado, consola y vty, el cifrado de contraseñas y la IP de la VLAN 1. Configuración aplicada en sw1 (en sw2 es igual, con hostname sw2 e IP 192.168.1.12):
+
+```text
+Switch>enable
+Switch#configure terminal
+Switch(config)#no ip domain-lookup
+Switch(config)#hostname sw1
+sw1(config)#enable secret class
+sw1(config)#line console 0
+sw1(config-line)#password cisco
+sw1(config-line)#login
+sw1(config-line)#exit
+sw1(config)#line vty 0 15
+sw1(config-line)#password cisco
+sw1(config-line)#login
+sw1(config-line)#exit
+sw1(config)#service password-encryption
+sw1(config)#interface vlan 1
+sw1(config-if)#ip address 192.168.1.11 255.255.255.0
+sw1(config-if)#no shutdown
+```
+
+Al volver a ingresar, el switch solicita la contraseña de consola y luego la privilegiada:
+
+```text
+User Access Verification
+
+Password:
+
+sw1>enable
+Password:
+sw1#
+```
+
+En la configuración se observa que las contraseñas de consola y vty quedan cifradas (tipo 7) por `service password-encryption`, y que la contraseña privilegiada se almacena como hash MD5 (tipo 5):
+
+```text
+sw1#show running-config
+service password-encryption
+!
+hostname sw1
+!
+enable secret 5 $1$mERr$9cTjUIEqNGurQiFU.ZeCi1
+...
+interface Vlan1
+ ip address 192.168.1.11 255.255.255.0
+...
+line con 0
+ password 7 0822455D0A16
+ login
+!
+line vty 0 4
+ password 7 0822455D0A16
+ login
+line vty 5 15
+ password 7 0822455D0A16
+ login
+```
+
+#### E)
+Se desactivaron los puertos no utilizados (en sw2 el rango es `fa0/2-17, fa0/19-24, gi0/1-2`):
+
+```text
+sw1(config)#interface range fa0/2-5, fa0/7-24, gi0/1-2
+sw1(config-if-range)#shutdown
+```
+
+Solo quedan activos Fa0/1 (enlace entre switches), Fa0/6 (PC-A) y la interfaz Vlan1:
+
+```text
+sw1#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol 
+FastEthernet0/1        unassigned      YES manual up                    up 
+FastEthernet0/2        unassigned      YES manual administratively down down 
+FastEthernet0/3        unassigned      YES manual administratively down down 
+FastEthernet0/4        unassigned      YES manual administratively down down 
+FastEthernet0/5        unassigned      YES manual administratively down down 
+FastEthernet0/6        unassigned      YES manual up                    up 
+FastEthernet0/7        unassigned      YES manual administratively down down 
+FastEthernet0/8        unassigned      YES manual administratively down down 
+FastEthernet0/9        unassigned      YES manual administratively down down 
+FastEthernet0/10       unassigned      YES manual administratively down down 
+FastEthernet0/11       unassigned      YES manual administratively down down 
+FastEthernet0/12       unassigned      YES manual administratively down down 
+FastEthernet0/13       unassigned      YES manual administratively down down 
+FastEthernet0/14       unassigned      YES manual administratively down down 
+FastEthernet0/15       unassigned      YES manual administratively down down 
+FastEthernet0/16       unassigned      YES manual administratively down down 
+FastEthernet0/17       unassigned      YES manual administratively down down 
+FastEthernet0/18       unassigned      YES manual administratively down down 
+FastEthernet0/19       unassigned      YES manual administratively down down 
+FastEthernet0/20       unassigned      YES manual administratively down down 
+FastEthernet0/21       unassigned      YES manual administratively down down 
+FastEthernet0/22       unassigned      YES manual administratively down down 
+FastEthernet0/23       unassigned      YES manual administratively down down 
+FastEthernet0/24       unassigned      YES manual administratively down down 
+GigabitEthernet0/1     unassigned      YES manual administratively down down 
+GigabitEthernet0/2     unassigned      YES manual administratively down down 
+Vlan1                  192.168.1.11    YES manual up                    up
+```
+
+#### F)
+Se guardó la configuración en la NVRAM, para que se mantenga ante un reinicio:
+
+```text
+sw1#write memory
+Building configuration...
+[OK]
+```
+
+#### G)
+Ping de PC-A a PC-B:
+
+```text
+C:\>ping 192.168.10.4
+
+Pinging 192.168.10.4 with 32 bytes of data:
+
+Reply from 192.168.10.4: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.4: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.4: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.4: bytes=32 time<1ms TTL=128
+
+Ping statistics for 192.168.10.4:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 0ms, Maximum = 0ms, Average = 0ms
+```
+
+El ping es exitoso porque, por defecto, todos los puertos de ambos switches pertenecen a la VLAN 1, por lo que PC-A y PC-B están en el mismo dominio de broadcast y en la misma subred.
+
+#### H)
+Se crearon las VLANs en ambos switches:
+
+```text
+sw1(config)#vlan 10
+sw1(config-vlan)#name Laboratorio
+sw1(config-vlan)#vlan 20
+sw1(config-vlan)#name Bar
+sw1(config-vlan)#vlan 99
+sw1(config-vlan)#name Management
+sw1(config-vlan)#end
+```
+
+#### I)
+
+```text
+sw1#show vlan brief
+
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    Fa0/1, Fa0/2, Fa0/3, Fa0/4
+                                                Fa0/5, Fa0/6, Fa0/7, Fa0/8
+                                                Fa0/9, Fa0/10, Fa0/11, Fa0/12
+                                                Fa0/13, Fa0/14, Fa0/15, Fa0/16
+                                                Fa0/17, Fa0/18, Fa0/19, Fa0/20
+                                                Fa0/21, Fa0/22, Fa0/23, Fa0/24
+                                                Gig0/1, Gig0/2
+10   Laboratorio                      active    
+20   Bar                              active    
+99   Management                       active    
+1002 fddi-default                     active    
+1003 token-ring-default               active    
+1004 fddinet-default                  active    
+1005 trnet-default                    active    
+```
+
+La VLAN utilizada por defecto es la VLAN 1 ("default"), a la que pertenecen inicialmente todos los puertos del switch. Las VLAN 1002 a 1005 también vienen creadas por defecto y están reservadas para tecnologías antiguas (FDDI y Token Ring).
+
+#### J) K)
+Se asignó PC-A (puerto Fa0/6) a la VLAN Laboratorio y se movió la IP de administración de la VLAN 1 a la VLAN 99:
+
+```text
+sw1(config)#interface fa0/6
+sw1(config-if)#switchport mode access
+sw1(config-if)#switchport access vlan 10
+sw1(config-if)#interface vlan 1
+sw1(config-if)#no ip address
+sw1(config-if)#interface vlan 99
+sw1(config-if)#ip address 192.168.1.11 255.255.255.0
+sw1(config-if)#end
+%LINK-5-CHANGED: Interface Vlan99, changed state to up
+```
+
+#### L)
+
+```text
+sw1#show vlan brief
+
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    Fa0/1, Fa0/2, Fa0/3, Fa0/4
+                                                Fa0/5, Fa0/7, Fa0/8, Fa0/9
+                                                Fa0/10, Fa0/11, Fa0/12, Fa0/13
+                                                Fa0/14, Fa0/15, Fa0/16, Fa0/17
+                                                Fa0/18, Fa0/19, Fa0/20, Fa0/21
+                                                Fa0/22, Fa0/23, Fa0/24, Gig0/1
+                                                Gig0/2
+10   Laboratorio                      active    Fa0/6
+20   Bar                              active    
+99   Management                       active    
+1002 fddi-default                     active    
+1003 token-ring-default               active    
+1004 fddinet-default                  active    
+1005 trnet-default                    active    
+```
+
+```text
+sw1#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol 
+FastEthernet0/1        unassigned      YES manual up                    up 
+FastEthernet0/2        unassigned      YES manual administratively down down 
+FastEthernet0/3        unassigned      YES manual administratively down down 
+FastEthernet0/4        unassigned      YES manual administratively down down 
+FastEthernet0/5        unassigned      YES manual administratively down down 
+FastEthernet0/6        unassigned      YES manual up                    up 
+FastEthernet0/7        unassigned      YES manual administratively down down 
+FastEthernet0/8        unassigned      YES manual administratively down down 
+FastEthernet0/9        unassigned      YES manual administratively down down 
+FastEthernet0/10       unassigned      YES manual administratively down down 
+FastEthernet0/11       unassigned      YES manual administratively down down 
+FastEthernet0/12       unassigned      YES manual administratively down down 
+FastEthernet0/13       unassigned      YES manual administratively down down 
+FastEthernet0/14       unassigned      YES manual administratively down down 
+FastEthernet0/15       unassigned      YES manual administratively down down 
+FastEthernet0/16       unassigned      YES manual administratively down down 
+FastEthernet0/17       unassigned      YES manual administratively down down 
+FastEthernet0/18       unassigned      YES manual administratively down down 
+FastEthernet0/19       unassigned      YES manual administratively down down 
+FastEthernet0/20       unassigned      YES manual administratively down down 
+FastEthernet0/21       unassigned      YES manual administratively down down 
+FastEthernet0/22       unassigned      YES manual administratively down down 
+FastEthernet0/23       unassigned      YES manual administratively down down 
+FastEthernet0/24       unassigned      YES manual administratively down down 
+GigabitEthernet0/1     unassigned      YES manual administratively down down 
+GigabitEthernet0/2     unassigned      YES manual administratively down down 
+Vlan1                  unassigned      YES manual up                    up 
+Vlan99                 192.168.1.11    YES manual up                    down
+```
+
+Con `show vlan brief` se verifica que el puerto Fa0/6 (PC-A) quedó asignado a la VLAN 10, mientras que el resto de los puertos, incluido Fa0/1 (enlace hacia sw2), permanece en la VLAN 1. Con `show ip interface brief` se observa que la IP de administración pasó a la interfaz Vlan99, que figura como up/down: está habilitada, pero su protocolo está caído porque ningún puerto activo pertenece a la VLAN 99. Por lo tanto, el switch no puede ser administrado por red hasta que la VLAN 99 tenga un puerto activo.
+
+#### M)
+Se repitió la configuración en sw2, asignando PC-B (puerto Fa0/18) a la VLAN 10 y la IP 192.168.1.12 a la VLAN 99:
+
+```text
+sw2(config)#interface fa0/18
+sw2(config-if)#switchport mode access
+sw2(config-if)#switchport access vlan 10
+sw2(config-if)#interface vlan 1
+sw2(config-if)#no ip address
+sw2(config-if)#interface vlan 99
+sw2(config-if)#ip address 192.168.1.12 255.255.255.0
+sw2(config-if)#end
+%LINK-5-CHANGED: Interface Vlan99, changed state to up
+
+sw2#write memory
+Building configuration...
+[OK]
+```
+
+#### N)
+Ping de PC-A a PC-B:
+
+```text
+C:\>ping 192.168.10.4
+
+Pinging 192.168.10.4 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 192.168.10.4:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss),
+```
+
+Ping de sw1 a sw2:
+
+```text
+sw1#ping 192.168.1.12
+
+Type escape sequence to abort.
+Sending 5, 100-byte ICMP Echos to 192.168.1.12, timeout is 2 seconds:
+.....
+Success rate is 0 percent (0/5)
+```
+
+Ninguno de los dos pings es exitoso. PC-A y PC-B pertenecen a la misma VLAN (10) y a la misma subred, pero están conectadas a switches distintos, y el único enlace entre ellos (Fa0/1) es un puerto de acceso de la VLAN 1. Como un switch solo reenvía tramas entre puertos de la misma VLAN, el tráfico de la VLAN 10 no puede pasar de un switch al otro. Lo mismo ocurre con el ping entre sw1 y sw2: sus direcciones IP ahora están en la VLAN 99, que no tiene ningún puerto activo, por lo que no hay camino para ese tráfico. Para solucionarlo, el enlace entre ambos switches debe configurarse como troncal 802.1Q, de modo que transporte el tráfico de varias VLAN usando etiquetas (tagging).
+
 ## Ejercicio3: LAN en un avión
 
 i) Clase Turista: acceso solo a un sistema de entretenimiento (server local)
