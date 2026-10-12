@@ -89,3 +89,97 @@ Trama Ethernet: 98 bytes
 ```
 
 La suma es `14 + 20 + 8 + 56 = 98` bytes, igual a la longitud que muestra Wireshark para esa trama.
+
+
+---
+
+## Ejercicio 3: TCP y UDP "a mano" con ncat
+
+#### 3.a)
+Establecer una conexión es que los dos extremos acuerden un estado compartido antes de enviar datos.
+Una conexión TCP existe solo en los extremos, como estado guardado por el sistema operativo de cada host. Los cables y los routers solo ven paquetes IP sueltos y no saben que pertenecen a una conexión.
+
+#### 3.b)
+Un puerto es un número de 16 bits que indica a qué proceso dentro de un host va dirigido el tráfico. 
+El par (IP, puerto) identifica un extremo de comunicación (un socket). Una conexión TCP se identifica por un par de origen y otro de destino, es decir (IP origen, puerto origen, IP destino, puerto destino).
+
+#### 3.c) 
+Si un proceso está escuchando en un puerto significa que el proceso reservó ese puerto y le pidió al sistema operativo que acepte conexiones en él. Desde ese momento, el SO responde con SYN-ACK a los SYN que llegan a ese puerto y entrega las conexiones establecidas al proceso. Si nadie escucha, el SO rechaza el intento.
+
+#### Experimento TCP
+Se abrieron dos terminales, una para el cliente y otra para el servidor. En el servidor se ejecutó `ncat -v -l 12000` y en el cliente `ncat -v 127.0.0.1 12000`. En Wireshark se filtró con `tcp.port == 12000`.
+
+![TCP1](images/TCP_1.png)
+
+La conexión se establece apenas se ejecuta el cliente, sin escribir nada. Los 3 paquetes que aparecen son:
+
+```
+519	cliente (47638) → servidor (12000)	[SYN]
+520	servidor → cliente	[SYN, ACK]
+521	cliente → servidor	[ACK]
+```
+
+Luego se enviaron mensajes desde ambas terminales:
+
+![TCP2](images/TCP_2.png)
+
+Cada mensaje viaja en un segmento con flags [PSH, ACK] y el otro lado lo confirma con un [ACK] sin datos (Len=0). Por ejemplo, "hola desde el cliente" tiene 21 caracteres pero el segmento muestra Len=23: los 2 bytes extra son el \r\n que agrega Windows al presionar Enter. Los números de ACK acompañan a los datos: después de recibir esos 23 bytes, el servidor responde con Ack=24, es decir, para pedir que le envien desde el byte 24.
+
+Finalmente se cerró el cliente con Ctrl+C:
+
+![TCP3](images/TCP_3.png)
+
+El cliente inicia el cierre con [FIN, ACK], el servidor lo confirma con [ACK] y luego envía su propio [FIN, ACK], que el cliente confirma con [ACK]. Cada lado cierra su dirección por separado, por eso son 4 paquetes.
+
+En total, el intercambio completo usó 15 paquetes: 3 de handshake, 8 de datos y confirmaciones (4 mensajes) y 4 de cierre.
+
+#### Experimento UDP
+
+Se capturó en la interfaz de loopback con el filtro `udp.port == 12001`. Se ejecutó primero el servidor con `ncat -v -u -l 12001` y luego el cliente con `ncat -v -u 127.0.0.1 12001`.
+
+Al ejecutar el cliente, antes de escribir nada, no apareció ningún paquete en la captura. Esto es porque UDP no tiene conexión, el "Connected to 127.0.0.1:12001" que muestra ncat es solo local, el programa deja configurado el destino pero no envía nada hasta que se escribe un mensaje. En TCP, en cambio, ya se habían visto 3 paquetes de handshake en este punto.
+
+Luego se envió un mensaje desde cada terminal:
+
+![UDP1](images/UDP_1.png)
+
+
+Cada mensaje generó un único datagrama, y no hay ningún paquete que lo confirme. 
+
+```
+194  cliente (52156) → servidor (12001)  23 bytes de datos
+200  servidor (12001) → cliente (52156)  24 bytes de datos
+```
+
+Finalmente se cerró el cliente con Ctrl+C y no apareció ningún paquete nuevo.
+
+#### a) 
+En TCP vimos 3 paquetes antes de escribir: [SYN] del cliente, [SYN, ACK] del servidor y [ACK] del cliente, que forman el three-way handshake. En UDP no apareció ningún paquete, porque no tiene conexión.
+
+#### b)
+En UDP cada mensaje generó un único datagrama, y no hubo nada parecido a un ACK: cuando el servidor respondió, lo hizo con otro datagrama con datos, no con una confirmación. En TCP cada mensaje generó un segmento [PSH, ACK] con datos, seguido de un [ACK] sin datos del otro lado, así que cada mensaje costó 2 paquetes.
+
+#### c)
+El encabezado UDP tiene 4 campos de 2 bytes (puerto origen, puerto destino, longitud y checksum) y ocupa 8 bytes.
+
+![UDP2](images/UDP_2.png)
+
+El encabezado TCP tiene puerto origen, puerto destino, número de secuencia, número de ACK, longitud de encabezado, flags, ventana, checksum, puntero urgente y opciones, y ocupa 20 bytes (en un segmento de datos).
+
+![TCP4](images/TCP_4.png)
+
+#### d)
+Al cerrar el cliente, en TCP hubo 4 paquetes, mientras que en UDP no apareció ningún paquete.
+
+#### e) 
+Para enviar un mensaje en un solo sentido, TCP necesitó 9 paquetes (3 de handshake, 1 de datos, 1 de ACK y 4 de cierre) y UDP necesitó 1. En las capturas completas, TCP usó 15 paquetes para 4 mensajes y UDP usó 2 para 2 mensajes. 
+Con los paquetes extra, TCP compra entrega confiable, confirmando la recepción, entrega ordenada, control de flujo, etc. UDP no ofrece nada de eso pero es más liviano.
+
+#### f)
+En TCP, el cliente manda un [SYN] (paquete 140) y el sistema operativo responde enseguida con un [RST, ACK] (paquete 141). Es una negativa: no hay handshake y ncat avisa que la conexión fue rechazada. Los paquetes siguientes son Windows reintentando el SYN, y cada intento recibe otro RST.
+
+En UDP, el cliente manda el datagrama (paquete 260) y vuelve un ICMP `Destination unreachable (Port unreachable)` (paquete 261). ncat lo muestra como "An existing connection was forcibly closed by the remote host".
+
+![UDP_TCP](images/UDP_TCP.png)
+
+---
