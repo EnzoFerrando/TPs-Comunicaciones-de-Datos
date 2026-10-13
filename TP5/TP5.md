@@ -183,3 +183,65 @@ En UDP, el cliente manda el datagrama (paquete 260) y vuelve un ICMP `Destinatio
 ![UDP_TCP](images/UDP_TCP.png)
 
 ---
+
+## Ejercicio 4: Servidor TCP mínimo con sockets
+
+#### 4.a)
+En el servidor, `socket()`, `bind()` y `listen()` son operaciones locales: crean el socket, lo asocian a `127.0.0.1:12000` y dejan el puerto escuchando. No mandan nada por la red.
+`accept()` espera a que se conecte un cliente y devuelve un socket nuevo para esa conexión. Con ese socket recibe el mensaje con `recv()`, responde con `sendall()` y sigue leyendo hasta que el cliente cierra (cuando `recv()` devuelve vacío). Al final cierra los dos sockets.
+
+#### 4.b)
+El cliente crea su socket y con `connect()` se conecta al servidor, ahí el sistema operativo hace el three-way handshake. El puerto del cliente lo elige el sistema operativo y el script lo muestra con `getsockname()`. Después envía el mensaje con `sendall()`, recibe la respuesta con `recv()` y cierra con `close()`, que manda el FIN.
+Si nadie escucha en el puerto, `connect()` falla por el RST (como en el 3.f), y si no hay respuesta corta por timeout a los 5 segundos.
+
+#### 4.c)
+Capturamos en loopback con el filtro `tcp.port == 12000` y ejecutamos el servidor y el cliente en dos terminales:
+
+```bash
+python tcp_server.py
+python tcp_client.py 127.0.0.1 "Hola desde mi programa"
+```
+
+![SOCKET1](images/SOCKET_1.png)
+
+Al cliente le tocó el puerto 64034. El servidor recibió 22 bytes y respondió con 32.
+
+![SOCKET2](images/SOCKET_2.png)
+
+```
+1	cliente (64034) → servidor (12000)	[SYN]
+2	servidor → cliente	[SYN, ACK]
+3	cliente → servidor	[ACK]
+4	cliente → servidor	[PSH, ACK]	Len=22
+5	servidor → cliente	[ACK]
+6	servidor → cliente	[PSH, ACK]	Len=32
+7	cliente → servidor	[ACK]
+8	cliente → servidor	[FIN, ACK]
+9	servidor → cliente	[ACK]
+10	servidor → cliente	[FIN, ACK]
+11	cliente → servidor	[ACK]
+```
+
+Son 11 paquetes: 3 de handshake, 4 de datos con sus ACK y 4 de cierre. El mensaje tiene Len=22, justo los caracteres del texto, porque el script no agrega el \r\n del Enter como pasaba con ncat. La respuesta tiene 32 bytes porque el servidor le suma "Recibido: " adelante.
+Al ser loopback, Wireshark muestra un encabezado Null/Loopback en lugar de Ethernet II, por eso los ACK miden 44 bytes (4 de loopback, 20 de IP y 20 de TCP).
+
+#### 4.d)
+
+| Llamada | ¿Dónde se ejecuta? | ¿Genera tráfico? | Segmentos que observamos |
+|---|---|---|---|
+| `socket()` | servidor y cliente | No | - |
+| `bind()` | servidor | No | - |
+| `listen()` | servidor | No | - |
+| `connect()` | cliente | Sí | 1 `[SYN]`, 2 `[SYN, ACK]` y 3 `[ACK]` |
+| `accept()` | servidor | No | - (la conexión ya estaba hecha en el paquete 3) |
+| `sendall()` | servidor | Sí | 6 `[PSH, ACK]` con 32 bytes y 7 `[ACK]` |
+| `recv()` | servidor | No | - (los datos ya habían llegado en el paquete 4) |
+| `close()` | ambos | Sí | 8 `[FIN, ACK]`, 9 `[ACK]`, 10 `[FIN, ACK]` y 11 `[ACK]` |
+
+El `sendall()` del cliente no está en la tabla, pero es el que genera el paquete 4 (22 bytes) y su ACK, el 5.
+Solo `connect()`, `sendall()` y `close()` generan tráfico. El handshake y los ACK los maneja el sistema operativo, por eso `accept()` y `recv()` no mandan nada: solo le entregan al programa lo que ya llegó.
+
+#### ¿Hacía falta usar puertos distintos para TCP y UDP?
+No. TCP y UDP tienen puertos independientes, el sistema operativo los distingue por el campo `Protocol` de IP (6 para TCP y 17 para UDP). Un servidor TCP y uno UDP podrían usar los dos el 12000. Usar puertos distintos solo hace más fácil leer las capturas.
+
+---
