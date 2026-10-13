@@ -90,6 +90,106 @@ Trama Ethernet: 98 bytes
 
 La suma es `14 + 20 + 8 + 56 = 98` bytes, igual a la longitud que muestra Wireshark para esa trama.
 
+---
+
+## Ejercicio 2: ARP - De una IP a una dirección MAC
+
+#### 2.a)
+
+ARP (*Address Resolution Protocol*) resuelve el problema de traducir una dirección IP conocida en la dirección MAC correspondiente dentro de la misma red local. Cuando un equipo quiere enviar una trama Ethernet necesita saber la MAC del destinatario, pero generalmente solo conoce su IP; ARP es el mecanismo que permite hacer esa traducción. Su ubicación en el modelo de capas es discutible porque no encaja exactamente en ninguna capa: no viaja dentro de un paquete IP (no usa direccionamiento IP como payload de capa de red), pero tampoco es un protocolo puramente de capa de enlace, ya que trabaja justamente para vincular una dirección de capa 3 (IP) con una de capa 2 (MAC). Por eso suele ubicarse “entre” la capa 2 y la capa 3, o directamente considerarse un protocolo propio que no se ajusta del todo al modelo OSI clásico.
+
+#### 2.b)
+
+Un ARP Request es un mensaje que pregunta cuál es la MAC correspondiente en base a la IP de destino, que es conocida, y se envía a la dirección de broadcast de la red local (`ff:ff:ff:ff:ff:ff`), por lo que lo reciben todos los dispositivos conectados a la red porque el emisor no sabe a quién dirigirse específicamente ni conoce todavía la MAC del destinatario. Un ARP Reply es la respuesta que da el equipo que efectivamente tiene esa IP, informando su dirección MAC. A diferencia del Request, el Reply se envía de forma unicast, directamente a la MAC del equipo que preguntó, ya que ese dato sí es conocido (viene incluido en el propio Request).
+
+#### 2.c)
+
+La caché ARP es una tabla que cada equipo mantiene en memoria, asociando temporalmente direcciones IP con direcciones MAC que ya averiguó previamente. Existe para evitar tener que repetir el proceso de ARP Request/Reply cada vez que se necesita enviar una trama a un destino con el que ya se habló recientemente, ahorrando tráfico y tiempo en la red. Las entradas de la caché tienen un tiempo de vida limitado, pasado el cual expiran y deben volver a resolverse.
+
+#### 2.d)
+
+Si tengo la IP de una máquina de mi red local y necesito enviarle una trama, primero reviso mi caché ARP para ver si ya tengo guardada la MAC correspondiente a esa IP. Si la tengo, uso ese valor directamente. Si no la tengo, envío un ARP Request en broadcast a toda la red preguntando por esa IP; el equipo dueño de esa IP me responde con un ARP Reply indicando su MAC. Entonces guardo ese dato en mi caché y ya puedo armar la trama Ethernet con esa dirección de destino.
+
+#### 2.e)
+
+Ejecutamos `ip neigh show` y encontramos la entrada correspondiente al gateway:
+
+```bash
+enzo@enzo-HP-255R-15-6-inch-G10-Notebook-PC:~$ ip neigh show
+192.168.1.1 dev wlo1 lladdr b4:3a:e2:89:e0:cf REACHABLE #corresponde al gateway
+192.168.1.11 dev wlo1 lladdr 58:11:22:4d:7d:d4 STALE 
+fe80::1 dev wlo1 lladdr b4:3a:e2:89:e0:cf router STALE 
+```
+
+Luego capturamos en Wireshark un ping al gateway (`ping -4 -c 4 192.168.1.1`) y seleccionamos el Echo Request, paquete n.º 80:
+
+![Echo Request y Echo Reply capturado en Wireshark](images/arp_cache_wireshark.png)
+
+La MAC destino de esa trama Ethernet fue `b4:3a:e2:89:e0:cf`, identificada por Wireshark como `HuaweiTechno_89:e0:cf`. Esta dirección coincide exactamente con la que figura en la caché ARP para esa misma IP. El estado `REACHABLE` indica que la entrada ya estaba resuelta y validada antes de iniciar el ping, por lo que el sistema operativo la reutilizó directamente desde la caché en lugar de generar un nuevo ARP Request. Esto confirma que la caché ARP es la fuente de la que el sistema operativo obtiene la dirección MAC necesaria para armar la trama Ethernet, evitando así repetir el proceso de resolución en cada comunicación con un destino ya conocido.
+
+#### 2.f)
+
+Para forzar la generación de tráfico ARP (Opción B), eliminamos la entrada del gateway de la caché y volvimos a hacer ping:
+
+```bash
+enzo@enzo-HP-255R-15-6-inch-G10-Notebook-PC:~$ sudo ip neigh del 192.168.1.1 dev wlo1
+ping -4 -c 2 192.168.1.1
+[sudo] contraseña para enzo: 
+PING 192.168.1.1 (192.168.1.1) 56(84) bytes of data.
+64 bytes from 192.168.1.1: icmp_seq=1 ttl=64 time=3.14 ms
+64 bytes from 192.168.1.1: icmp_seq=2 ttl=64 time=1.68 ms
+
+--- 192.168.1.1 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1001ms
+rtt min/avg/max/mdev = 1.683/2.410/3.137/0.727 ms
+```
+
+Capturando en `wlo1` con el filtro `arp`, aparecieron los paquetes n.º 295 (ARP Request) y n.º 296 (ARP Reply), inmediatamente antes de los Echo Request/Reply del ping:
+
+![ARP Request y Reply capturados en Wireshark](images/arp_request_reply_wireshark.png)
+
+| Campo | ARP Request (295) | ARP Reply (296) |
+| --- | --- | --- |
+| MAC destino (Ethernet) | `ff:ff:ff:ff:ff:ff` (Broadcast) | `50:2e:91:4c:da:7e` |
+| MAC origen (Ethernet) | `50:2e:91:4c:da:7e` | `b4:3a:e2:89:e0:cf` |
+| Opcode | 1 (request) | 2 (reply) |
+| Sender MAC address | `50:2e:91:4c:da:7e` | `b4:3a:e2:89:e0:cf` |
+| Sender IP address | `192.168.1.16` | `192.168.1.1` |
+| Target MAC address | `00:00:00:00:00:00` | `50:2e:91:4c:da:7e` |
+| Target IP address | `192.168.1.1` | `192.168.1.16` |
+
+**a)** El Request se envió a la dirección de broadcast (`ff:ff:ff:ff:ff:ff`) porque en ese momento el emisor no conocía la MAC del gateway (la acabábamos de borrar de la caché) y, por lo tanto, no tenía forma de dirigir la trama a un destinatario específico; enviarla a broadcast garantiza que todos los dispositivos de la red la reciban y que el que corresponda (el dueño de `192.168.1.1`) pueda responder. El campo *Target MAC address* en el Request vale `00:00:00:00:00:00`, ya que ese es justamente el dato que se desconoce y se está solicitando: no tendría sentido completarlo con ningún valor real porque todavía no se sabe cuál es.
+
+**b)** En el encabezado Ethernet de ambas tramas, el campo *Type* vale `0x0806` (visible como “Type: ARP (0x0806)” en la captura). Ninguna de las dos tramas tiene un encabezado IP: el panel de detalles pasa directamente de “Ethernet II” a “Address Resolution Protocol”, sin ninguna capa “Internet Protocol” en el medio. Esto confirma que ARP no viaja encapsulado dentro de un paquete IP, sino directamente como payload de la trama Ethernet, lo cual refuerza la idea planteada en el punto 2.a de que ARP no encaja prolijamente en ninguna capa del modelo OSI clásico: no usa IP para transportarse, pero tampoco es un protocolo “puro” de capa de enlace, ya que su función es vincular justamente una dirección IP con una MAC.
+
+**c)** Para esta parte usamos la Opción A: hicimos ping a una IP de la subred que no estaba en uso, `192.168.1.253` (verificado previamente que no figuraba en la caché ARP), capturando en `wlo1` con el filtro `arp`:
+
+![ARP Request sin respuesta (IP sin uso)](images/arp_request_failed_wireshark.png)
+
+En la captura aparecieron 6 ARP Request (paquetes n.º 18, 23, 24, 69, 99 y 101), todos con el mismo contenido: `Who has 192.168.1.253? Tell 192.168.1.16`, enviados a intervalos crecientes de aproximadamente 1 segundo. No hubo ningún ARP Reply, porque ningún dispositivo de la red respondió: la IP simplemente no está en uso por ningún equipo. Esto se confirma también con el comando `ip neigh show`, donde la entrada para `192.168.1.253` quedó en estado `FAILED`, indicando que la resolución nunca se completó.
+
+```bash
+enzo@enzo-HP-255R-15-6-inch-G10-Notebook-PC:~$ ping -4 -n 192.168.1.253
+PING 192.168.1.253 (192.168.1.253) 56(84) bytes of data.
+From 192.168.1.16 icmp_seq=1 Destination Host Unreachable
+From 192.168.1.16 icmp_seq=2 Destination Host Unreachable
+From 192.168.1.16 icmp_seq=3 Destination Host Unreachable
+^C
+--- 192.168.1.253 ping statistics ---
+5 packets transmitted, 0 received, +3 errors, 100% packet loss, time 4083ms
+pipe 4
+enzo@enzo-HP-255R-15-6-inch-G10-Notebook-PC:~$ ip neigh show
+192.168.1.253 dev wlo1 FAILED 
+192.168.1.1 dev wlo1 lladdr b4:3a:e2:89:e0:cf REACHABLE 
+192.168.1.11 dev wlo1 lladdr 58:11:22:4d:7d:d4 STALE 
+fe80::1 dev wlo1 lladdr b4:3a:e2:89:e0:cf router STALE 
+```
+
+Tampoco apareció ningún paquete ICMP Echo Request en la captura. Esto se explica porque el sistema operativo no puede armar la trama Ethernet del ping sin conocer antes la MAC de destino: al no recibir nunca el ARP Reply, el envío del Echo Request queda bloqueado a nivel de capa de enlace y el paquete ICMP nunca llega a construirse ni transmitirse. De hecho, la propia salida del comando `ping` lo refleja: en lugar de mostrar timeouts (que indicarían que el Echo Request sí se envió pero no hubo respuesta), muestra “Destination Host Unreachable”, generado localmente por el propio sistema operativo al no poder resolver la dirección MAC del destino.
+
+**d)** Al volver a hacer ping al mismo destino (`192.168.1.253`) un momento después, sí volvió a aparecer tráfico ARP: se observó una nueva tanda de 6 ARP Request (paquetes 6627-6647), idéntica en estructura a la primera (mismo patrón de reintentos, sin ningún Reply). Esto contrasta con el comportamiento observado al pinguear el gateway, donde una resolución exitosa se cachea y se reutiliza sin generar tráfico adicional. La diferencia es que, en este caso, la resolución nunca llegó a completarse con éxito, por lo que no existe ninguna entrada MAC válida que el sistema pueda reutilizar: el estado `FAILED` en la caché no funciona como un dato aprovechable, sino simplemente como el registro de que el último intento no obtuvo respuesta. Por eso, cada nuevo intento de comunicación con un destino que no responde dispara una nueva ronda completa de resolución ARP.
+
+Esto deja en evidencia la ventaja real de la caché, solo ahorra tráfico cuando la resolución fue exitosa y hay una MAC válida para reutilizar. Cuando la resolución falla, no hay nada que cachear de forma útil, así que el costo de reintentar se paga en cada comunicación nueva. El riesgo opuesto, el de una entrada exitosa que queda desactualizada (por ejemplo, si un equipo cambia de placa de red), es que el sistema seguiría usando una MAC incorrecta hasta que esa entrada expire por tiempo y se fuerce una nueva resolución.
 
 ---
 
