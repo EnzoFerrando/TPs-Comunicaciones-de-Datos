@@ -341,7 +341,4 @@ Al ser loopback, Wireshark muestra un encabezado Null/Loopback en lugar de Ether
 El `sendall()` del cliente no está en la tabla, pero es el que genera el paquete 4 (22 bytes) y su ACK, el 5.
 Solo `connect()`, `sendall()` y `close()` generan tráfico. El handshake y los ACK los maneja el sistema operativo, por eso `accept()` y `recv()` no mandan nada: solo le entregan al programa lo que ya llegó.
 
-#### ¿Hacía falta usar puertos distintos para TCP y UDP?
-No. TCP y UDP tienen puertos independientes, el sistema operativo los distingue por el campo `Protocol` de IP (6 para TCP y 17 para UDP). Un servidor TCP y uno UDP podrían usar los dos el 12000. Usar puertos distintos solo hace más fácil leer las capturas.
-
 ---
